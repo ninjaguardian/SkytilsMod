@@ -45,30 +45,30 @@ object EnchantNames : EventSubscriber, PersistentSave(File(Skytils.modDir, "ench
         if (replacements.isEmpty()) return
         event.tooltip.replaceAll { line ->
             val lineText = line.formattedText
-            val matches = enchantRegex.findAll(lineText)
-            if (matches.count() == 0) return@replaceAll line
-            matches.fold(lineText) { current, result ->
-                val color = result.groups["color"]!!.value
-                val enchant = result.groups["enchant"]!!.value
-                if (replacements[enchant] == null) return@fold current
-                val level = result.groups["level"]!!.value
+            val showEnchantNames = DevTools.getToggle("enchantNames")
+
+            val replaced = enchantRegex.replace(lineText) { result ->
+                val enchant = result.groups["enchant"]?.value ?: return@replace result.value
+                if (replacements[enchant] == null) return@replace result.value
+                val color = result.groups["color"]?.value ?: ""
+                val level = result.groups["level"]?.value ?: ""
                 val suffix = result.groups["suffix"]?.value ?: ""
-                if (DevTools.getToggle("enchantNames")) {
+                if (showEnchantNames) {
                     println(enchant)
                     println(result.groups)
                 }
-                current.replace(
-                    result.value,
-                    buildString {
-                        append(color)
-                        if (DevTools.getToggle("enchantNames")) append("{")
-                        append("§o${enchant.replaceEnchantNames()}")
-                        append(level)
-                        if (DevTools.getToggle("enchantNames")) append("}")
-                        append(suffix)
-                    }
-                )
-            }.let(::textComponent)
+
+                buildString {
+                    append(color)
+                    if (showEnchantNames) append("{")
+                    append("§o${enchant.replaceEnchantNames()}")
+                    append(level)
+                    if (showEnchantNames) append("}")
+                    append(suffix)
+                }
+            }
+
+            if (replaced === lineText || replaced == lineText) line else textComponent(replaced)
         }
     }
 
